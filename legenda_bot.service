@@ -1,0 +1,22 @@
+[Unit]
+Description=Legenda Suhbatdosh Telegram AI Bot Service
+After=network.target
+
+[Service]
+Type=simple
+# Serverdagi foydalanuvchi nomi (masalan: ubuntu, root yoki o'zingizning username'ingiz)
+User=root
+# Loyihaning serverdagi to'liq yo'li
+WorkingDirectory=/var/www/suhbatdosh-bot
+# Python virtual muhitidagi ijrochi fayl yo'li
+ExecStart=/var/www/suhbatdosh-bot/venv/bin/python -m src.main
+Restart=always
+RestartSec=5
+# Muhit o'zgaruvchilari
+EnvironmentFile=/var/www/suhbatdosh-bot/.env
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

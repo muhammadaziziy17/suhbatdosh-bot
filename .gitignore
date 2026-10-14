@@ -1,0 +1,19 @@
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment secrets
+.env
+
+# SQLite Database
+data/*.sqlite3
+data/*.sqlite3-journal
+
+# Logs
+*.log
