@@ -19,10 +19,7 @@
    - Admin `/update_avatar` bilan istalgan payt qo'lda ham almashtirishi mumkin.
 4. **Stikerlarni Tushunish va O'qish**:
    - Bot foydalanuvchilar yuborgan stikerlarning hissiyoti va ma'nosini (kulgi, o't, g'azab, qarsak va h.k.) tushunadi va shunga mos jonli munosabat bildiradi.
-5. **Haqiqiy Ovozli Xabarlar (Golos) Yuborish**:
-   - Bot faqat matn bilan cheklanib qolmaydi — `edge-tts` orqali tabiiy o'zbekcha erkak ovozida (Sardor) Telegram ovozli xabarlarini (golos) yuboradi!
-   - Foydalanuvchi "ovoz tashla", "gapirchi", "eshitaylik" deb yozsa yoki suhbat davomida vaqti-vaqti bilan avtomatik ovozli xabar qilib javob beradi.
-6. **Faqat Guruhlarga Moslashtirilgan Aqlli Muloqot**:
+5. **Faqat Guruhlarga Moslashtirilgan Aqlli Muloqot**:
    - Guruhdagi hamma gaplarga ketavermaydi, faqat kerakli paytda gapiradi.
    - **`/suhbat_boshlash`**: Bot faol suhbatni boshlaydi ("gap boshlaydi").
    - **`/stop_suhbatdosh`**: Suhbatni to'xtatadi.
@@ -31,7 +28,7 @@
    - **Guruh cheklovi**: `.env` dagi `ALLOWED_GROUP_ID` sozlansa, bot faqat o'sha guruhda javob beradi (guruh ID sini `/chatid` orqali oling).
    - **Yaratuvchi**: "sani kim yaratgan?" deb so'ralsa, bot g'urur bilan `CREATOR_NAME` (`CREATOR_USERNAME`) ni ko'rsatadi.
    - Shaxsiy chatda esa bot faqat guruhlarda ishlashini tushuntirib, guruhga qo'shish tugmasini taqdim etadi.
-5. **Server uchun 24/7 Tayyor (Systemd Service)**:
+6. **Server uchun 24/7 Tayyor (Systemd Service)**:
    - Linux VPS/VDS serverlarida fon rejimida uzluksiz ishlash uchun systemd fayli mavjud.
 
 ---
