@@ -13,13 +13,15 @@ from .config import (
     AI_TEMPERATURE,
     AI_MAX_TOKENS,
     AI_FREQUENCY_PENALTY,
-    AI_PRESENCE_PENALTY
+    AI_PRESENCE_PENALTY,
+    CREATOR_NAME,
+    CREATOR_USERNAME
 )
 from . import database
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """Sen Telegram guruhda bolalar bilan tengma-teng gaplashadigan, og'ir-bosiq, o'tkir zehnli va hozirjavob yigitsan. Xaraktering jiddiyroq, kamgap, lekin gapirganda nishonga aniq urasan.
+SYSTEM_PROMPT = f"""Sen Telegram guruhda bolalar bilan tengma-teng gaplashadigan, og'ir-bosiq, o'tkir zehnli va hozirjavob yigitsan. Xaraktering jiddiyroq, kamgap, lekin gapirganda nishonga aniq urasan.
 
 1. QAT'IY FORMAT VA QISQALIK QOIDALARI (ENG MUHIMI!):
 - Maksimal uzunlik: 1 yoki 2 ta qisqa gap (10-25 ta so'z). Hech qachon uzun abzaslar, ro'yxatlar yoki bir nechta variantlar yozma!
@@ -65,6 +67,8 @@ Xabar: "[Sardor]: [Stiker: 😂]"
 
 Xabar: "[Bekzod]: PHP yaxshimi yoki Python?"
 ✅ TO'G'RI: "Veb va tez backend kerak bo'lsa Laravel, AI tomonga bo'lsa Python. Maqsadga qarab tanlanaveradi."
+
+YARATUVCHI HAQIDA: Agar kimdir sendan "sani kim yaratgan", "kim qilgan", "egang kim", "kimni botisan", "muallifing kim" deb so'rasa, g'urur bilan: "Meni {CREATOR_NAME} yaratgan ({CREATOR_USERNAME}), savollar bo'lsa o'ziga yozaver" ma'nosida aniq {CREATOR_NAME}ni ko'rsatib va uning Telegram username'i {CREATOR_USERNAME} ni ham tilga olib javob ber.
 """
 
 # Oldingi suhbat tarixi faqat mavzuni tushunish uchun alohida tizim bloki sifatida beriladi.
@@ -367,6 +371,52 @@ def clean_ai_response(text: str, current_user_name: Optional[str] = None) -> str
     cleaned = re.sub(r"[,\s]+$", "", cleaned)
 
     return cleaned.strip()
+
+
+# Yaratuvchi haqida savol berilganda aniqlanadigan kalit iboralar
+CREATOR_KEYWORDS = (
+    "kim yaratgan", "kim yaratdi", "kim yaratding",
+    "kim yasagan", "kim yasadi",
+    "kim qilgan", "kim qildi", "kim qigan sani",
+    "egang kim", "egasi kim",
+    "kimni botisan", "kimning botisan",
+    "muallifing kim", "muallifi kim",
+)
+
+
+def is_creator_question(text: str) -> bool:
+    """Xabar matnida bot yaratuvchisi haqida savol borligini aniqlaydi."""
+    if not text:
+        return False
+    normalized = _normalize_apostrophes(text)
+    return any(keyword in normalized for keyword in CREATOR_KEYWORDS)
+
+
+def ensure_creator_mention(reply: str, source_text: str = "") -> str:
+    """
+    Yaratuvchi haqidagi savolga javobda ism va Telegram username aniq tilga olinishini kafolatlaydi.
+    Agar AI javobi ularni o'zi aytmagan bo'lsa, jumla oxiriga qo'shib beriladi.
+    """
+    if not reply or not is_creator_question(source_text):
+        return reply
+
+    reply_normalized = _normalize_apostrophes(reply)
+    name_mentioned = bool(CREATOR_NAME) and _normalize_apostrophes(CREATOR_NAME) in reply_normalized
+    username_handle = _normalize_apostrophes(CREATOR_USERNAME)
+    username_mentioned = bool(username_handle) and username_handle in reply_normalized
+
+    if name_mentioned and (username_mentioned or not CREATOR_USERNAME):
+        return reply
+
+    if name_mentioned and not username_mentioned:
+        addition = f"Telegram profilim: {CREATOR_USERNAME}."
+    else:
+        creator_info = CREATOR_NAME
+        if CREATOR_USERNAME:
+            creator_info += f" ({CREATOR_USERNAME})"
+        addition = f"Meni {creator_info} yaratgan, savollar bo'lsa o'ziga yozaver."
+
+    return f"{reply} {addition}".strip()
 
 
 def _messages_without_images(messages: List[Dict[str, Any]]) -> Optional[List[Dict[str, Any]]]:

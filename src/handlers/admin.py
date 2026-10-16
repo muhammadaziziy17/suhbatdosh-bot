@@ -1,5 +1,6 @@
 import logging
 from aiogram import Router, F
+from aiogram.enums import ChatType
 from aiogram.filters import Command
 from aiogram.types import Message
 from ..config import ADMIN_IDS, DEEPSEEK_MODEL, GLM_API_KEY, GLM_FALLBACK_MODELS
@@ -70,3 +71,22 @@ async def cmd_stats(message: Message) -> None:
         f"💬 **Chat xotirasi**: ~{total_tokens:,} taxminiy token"
     )
     await message.reply(info_text, parse_mode="Markdown")
+
+
+@admin_router.message(Command("chatid"))
+async def cmd_chatid(message: Message) -> None:
+    """Joriy chat (guruh) ID raqamini ko'rsatadi — ALLOWED_GROUP_ID sozlash uchun (faqat adminlar)."""
+    user_id = message.from_user.id if message.from_user else 0
+    if ADMIN_IDS and not is_admin(user_id):
+        await message.reply("Kechirasiz, ushbu buyruq faqat bot adminlari uchun!")
+        return
+
+    hint = ""
+    if message.chat.type in (ChatType.GROUP, ChatType.SUPERGROUP):
+        hint = "\n\n💡 Ushbu raqamni `.env` faylidagi `ALLOWED_GROUP_ID` ga qo'ying."
+
+    await message.reply(
+        f"🆔 **Chat ID**: `{message.chat.id}`\n"
+        f"📍 **Chat turi**: `{message.chat.type}`{hint}",
+        parse_mode="Markdown"
+    )

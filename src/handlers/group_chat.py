@@ -4,6 +4,7 @@ from aiogram import Router, F
 from aiogram.enums import ChatType, ChatAction
 from aiogram.filters import Command
 from aiogram.types import Message
+from ..config import ALLOWED_GROUP_ID
 from .. import database
 from .. import ai_service
 
@@ -17,6 +18,17 @@ MAX_REPLY_TEXT_LENGTH = 300
 group_router = Router()
 # Faqat guruh va superguruh xabarlarini qabul qilish
 group_router.message.filter(F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP}))
+
+
+def is_allowed_chat(message: Message) -> bool:
+    """
+    Bot faqat ALLOWED_GROUP_ID da ko'rsatilgan guruhda ishlashini tekshiradi.
+    ALLOWED_GROUP_ID = 0 bo'lsa cheklov yo'q; aks holda begona guruhda javob qaytarilmaydi.
+    """
+    if ALLOWED_GROUP_ID and message.chat.id != ALLOWED_GROUP_ID:
+        logger.debug("Ruxsat etilmagan chat (%s), javob qaytarilmaydi.", message.chat.id)
+        return False
+    return True
 
 
 async def photo_to_data_url(message: Message) -> str | None:
@@ -105,6 +117,9 @@ def split_text(text: str, chunk_size: int = 4000) -> list[str]:
 @group_router.message(Command("start"))
 async def cmd_group_start(message: Message) -> None:
     """Guruhda /start buyrug'iga javob."""
+    if not is_allowed_chat(message):
+        return
+
     await message.reply(
         "Salom guruh ahli! 😎\n"
         "Men — **Legenda Suhbatdosh**man!\n\n"
@@ -119,6 +134,9 @@ async def cmd_group_start(message: Message) -> None:
 @group_router.message(Command("help"))
 async def cmd_group_help(message: Message) -> None:
     """Guruhda /help buyrug'i."""
+    if not is_allowed_chat(message):
+        return
+
     help_text = (
         "💡 **Legenda Suhbatdosh Guruh Qo'llanmasi**:\n\n"
         "• `/suhbat_boshlash` (yoki `/suhbat-boshlash`) — suhbatni boshlash\n"
@@ -133,6 +151,9 @@ async def cmd_group_help(message: Message) -> None:
 @group_router.message(Command("clear"))
 async def cmd_group_clear(message: Message) -> None:
     """Guruh xotirasini tozalash."""
+    if not is_allowed_chat(message):
+        return
+
     await database.clear_chat_history(message.chat.id)
     await message.reply("🧹 Guruhdagi suhbat tarixi va xotira tozalandi! Yangi mavzudan boshlaymiz 😎")
 
@@ -141,6 +162,9 @@ async def cmd_group_clear(message: Message) -> None:
 @group_router.message(F.text.lower().startswith("/suhbat-boshlash") | F.text.lower().startswith("/suhbat_boshlash"))
 async def cmd_start_chat(message: Message) -> None:
     """Suhbatni boshlash buyrug'i: suhbat rejimini yoqadi va bot o'zi gap boshlaydi."""
+    if not is_allowed_chat(message):
+        return
+
     chat_id = message.chat.id
     await database.set_chat_state(chat_id, "active_mode", "1")
 
@@ -179,6 +203,9 @@ async def cmd_start_chat(message: Message) -> None:
 @group_router.message(F.text.lower().startswith("/stop-suhbatdosh") | F.text.lower().startswith("/stop_suhbatdosh"))
 async def cmd_stop_chat(message: Message) -> None:
     """Suhbatni to'xtatish buyrug'i: faol rejimni o'chiradi."""
+    if not is_allowed_chat(message):
+        return
+
     chat_id = message.chat.id
     await database.set_chat_state(chat_id, "active_mode", "0")
 
@@ -200,6 +227,10 @@ async def handle_group_message(message: Message) -> None:
     4. Suhbat faol bo'lsa (/suhbat_boshlash) -> 10 ta xabardan 2 tasiga ora-orada qo'shiladi.
     5. Boshqa paytda jim turadi.
     """
+    # Faqat ruxsat etilgan guruhda ishlash cheklovi (ALLOWED_GROUP_ID)
+    if not is_allowed_chat(message):
+        return
+
     # Botlarning xabarlarini e'tiborsiz qoldirish
     if message.from_user and message.from_user.is_bot:
         return
@@ -306,6 +337,9 @@ async def handle_group_message(message: Message) -> None:
 
         # 5. Javobni foydalanuvchiga yuborishdan oldin tozalash (boshidagi ism, ortiqcha emodzilar)
         ai_reply = ai_service.clean_ai_response(ai_reply, sender_name)
+
+        # 5.1. Yaratuvchi haqidagi savolga javobda ism va username aniq tilga olinishi kafolatlanadi
+        ai_reply = ai_service.ensure_creator_mention(ai_reply, text)
         if not ai_reply:
             logger.warning("Tozalashdan so'ng javob bo'sh qoldi (chat: %s).", chat_id)
             return

@@ -55,6 +55,18 @@ AI_PRESENCE_PENALTY = float(os.getenv("AI_PRESENCE_PENALTY", "0.3"))
 _raw_admins = os.getenv("ADMIN_IDS", "").strip()
 ADMIN_IDS = [int(a.strip()) for a in _raw_admins.split(",") if a.strip().isdigit()]
 
+# Guruh cheklovi: bot faqat shu ID dagi guruhda ishlaydi (0 — cheklovsiz)
+ALLOWED_GROUP_ID = int(os.getenv("ALLOWED_GROUP_ID", "0").strip() or "0")
+
+# Bot yaratuvchisi haqida ma'lumot (kim yaratgan deb so'ralganda ko'rsatiladi)
+CREATOR_NAME = os.getenv("CREATOR_NAME", "Muhammadaziz").strip() or "Muhammadaziz"
+_raw_creator_username = os.getenv("CREATOR_USERNAME", "@muhammadaziz").strip()
+CREATOR_USERNAME = (
+    _raw_creator_username
+    if (not _raw_creator_username or _raw_creator_username.startswith("@"))
+    else f"@{_raw_creator_username}"
+)
+
 # Validatsiya
 if not TELEGRAM_BOT_TOKEN:
     raise ValueError("TELEGRAM_BOT_TOKEN topilmadi! Iltimos, .env faylini to'ldiring.")

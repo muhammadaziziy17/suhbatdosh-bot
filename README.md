@@ -30,6 +30,8 @@
    - **`/stop_suhbatdosh`**: Suhbatni to'xtatadi.
    - **Atmetka yoki Reply**: Botga @ atmetka qilinganda yoki uning xabariga **Reply** qilinganda har doim javob beradi.
    - **Ora-orada qo'shilish**: Faol suhbat vaqtida bot umumiy mavzularga ham ora-orada (har 10 ta xabardan 2 tasiga) qo'shilib turadi.
+   - **Guruh cheklovi**: `.env` dagi `ALLOWED_GROUP_ID` sozlansa, bot faqat o'sha guruhda javob beradi (guruh ID sini `/chatid` orqali oling).
+   - **Yaratuvchi**: "sani kim yaratgan?" deb so'ralsa, bot g'urur bilan `CREATOR_NAME` (`CREATOR_USERNAME`) ni ko'rsatadi.
    - Shaxsiy chatda esa bot faqat guruhlarda ishlashini tushuntirib, guruhga qo'shish tugmasini taqdim etadi.
 5. **Server uchun 24/7 Tayyor (Systemd Service)**:
    - Linux VPS/VDS serverlarida fon rejimida uzluksiz ishlash uchun systemd fayli mavjud.
@@ -116,6 +118,9 @@ AI_TEMPERATURE=0.55
 AI_MAX_TOKENS=130
 AI_FREQUENCY_PENALTY=0.5
 AI_PRESENCE_PENALTY=0.3
+ALLOWED_GROUP_ID=0
+CREATOR_NAME=Muhammadaziz
+CREATOR_USERNAME=@muhammadaziz
 ADMIN_IDS=
 ```
 
@@ -221,6 +226,7 @@ Agar `.env` faylida `ADMIN_IDS` ko'rsatilgan bo'lsa (masalan: `ADMIN_IDS=1234567
 
 - `/update_avatar` — Profil rasmini qo'lda navbatdagisiga almashtirish.
 - `/stats` — Bot statistikasi, oxirgi rasm indeksi va chatdagi faol tokenlar sonini ko'rish.
+- `/chatid` — Joriy guruh/chat ID raqamini ko'rsatadi (`ALLOWED_GROUP_ID` sozlash uchun).
 - `/clear` — Guruh suhbat xotirasini tozalash (istalgan foydalanuvchi ishlata oladi).
 
 ---
