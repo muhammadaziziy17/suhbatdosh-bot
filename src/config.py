@@ -42,7 +42,14 @@ DB_PATH = DATA_DIR / "bot_database.sqlite3"
 
 # Kontekst va xotira chegaralari
 MAX_CONTEXT_TOKENS = int(os.getenv("MAX_CONTEXT_TOKENS", "100000"))
-CONTEXT_MESSAGES_LIMIT = int(os.getenv("CONTEXT_MESSAGES_LIMIT", "15"))
+# AI ga kontekst sifatida beriladigan oxirgi xabarlar soni (6-8 oralig'ida ushlanadi)
+CONTEXT_MESSAGES_LIMIT = int(os.getenv("CONTEXT_MESSAGES_LIMIT", "8"))
+
+# AI API chaqiruv parametrlari (qisqa, xilma-xil va takrorsiz javoblar uchun qat'iy cheklov)
+AI_TEMPERATURE = float(os.getenv("AI_TEMPERATURE", "0.55"))
+AI_MAX_TOKENS = int(os.getenv("AI_MAX_TOKENS", "130"))
+AI_FREQUENCY_PENALTY = float(os.getenv("AI_FREQUENCY_PENALTY", "0.5"))
+AI_PRESENCE_PENALTY = float(os.getenv("AI_PRESENCE_PENALTY", "0.3"))
 
 # Adminlar ro'yxati
 _raw_admins = os.getenv("ADMIN_IDS", "").strip()

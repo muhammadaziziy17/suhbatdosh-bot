@@ -79,7 +79,7 @@ async def add_message(
         return cursor.lastrowid
 
 
-async def get_recent_messages(chat_id: int, limit: int = 30) -> List[Dict[str, Any]]:
+async def get_recent_messages(chat_id: int, limit: int = 8) -> List[Dict[str, Any]]:
     """Chatdagi oxirgi `limit` ta xabarni xronologik tartibda qaytaradi."""
     async with aiosqlite.connect(DB_PATH, timeout=30.0) as db:
         db.row_factory = aiosqlite.Row

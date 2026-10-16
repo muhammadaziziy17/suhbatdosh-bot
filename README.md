@@ -12,7 +12,7 @@
    - DeepSeek API orqali `deepseek-flash` modelidan foydalanadi.
    - DeepSeek API javob bermasa, `GLM_API_KEY` sozlangan bo'lsa GLM zaxirasiga o'tadi; aks holda bot qayta yozib ko'rishni so'raydi.
 2. **Aqlli Guruh Xotirasi (Memory & Context)**:
-   - Har bir guruh uchun oxirgi 30 ta xabarni to'liq eslab qoladi.
+   - Har bir guruhda kontekst uchun oxirgi 8 ta xabar olinadi; javob faqat eng oxirgi xabarga yoziladi.
    - Guruhdagi har bir a'zoning ismini inobatga oladi (`[Ali]: Salom`, `[Vali]: Qalaysiz`).
    - Agar kontekst juda katta bo'lib ketsa (100 000 tokendan oshsa), eski xabarlarni AI orqali qisqacha xulosalaydi (`chat_summaries`) va kontekstni doim toza va tezkor saqlaydi.
 3. **Avtomatik Profil Rasmi**:
@@ -111,7 +111,11 @@ GLM_MODELS=glm-4.7,glm-4.6
 
 MEMES_DIR=Memes
 MAX_CONTEXT_TOKENS=100000
-CONTEXT_MESSAGES_LIMIT=30
+CONTEXT_MESSAGES_LIMIT=8
+AI_TEMPERATURE=0.55
+AI_MAX_TOKENS=130
+AI_FREQUENCY_PENALTY=0.5
+AI_PRESENCE_PENALTY=0.3
 ADMIN_IDS=
 ```
 

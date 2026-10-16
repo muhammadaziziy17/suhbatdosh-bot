@@ -1,3 +1,4 @@
+import base64
 import logging
 from aiogram import Router, F
 from aiogram.enums import ChatType, ChatAction
@@ -8,9 +9,72 @@ from .. import ai_service
 
 logger = logging.getLogger(__name__)
 
+# Vision uchun rasm hajmining yuqori chegarasi (5 MB)
+MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024
+# Reply qilingan xabar matnining maksimal uzunligi
+MAX_REPLY_TEXT_LENGTH = 300
+
 group_router = Router()
 # Faqat guruh va superguruh xabarlarini qabul qilish
 group_router.message.filter(F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP}))
+
+
+async def photo_to_data_url(message: Message) -> str | None:
+    """Xabardagi rasmni yuklab, vision uchun base64 data URL ko'rinishida qaytaradi."""
+    if not message.photo:
+        return None
+    try:
+        photo = message.photo[-1]  # eng katta o'lchamli variant
+        buffer = await message.bot.download(photo.file_id)
+        if buffer is None:
+            return None
+        data = buffer.read()
+        if not data or len(data) > MAX_PHOTO_SIZE_BYTES:
+            logger.warning("Rasm bo'sh yoki juda katta, vision uchun yuborilmaydi (chat: %s).", message.chat.id)
+            return None
+        encoded = base64.b64encode(data).decode("ascii")
+        return f"data:image/jpeg;base64,{encoded}"
+    except Exception as e:
+        logger.warning("Rasmni yuklab olishda xatolik: %s", e)
+        return None
+
+
+def describe_reply_message(replied: Message) -> dict[str, str]:
+    """Reply qilingan xabarning muallifi va mazmunini (matn/rasm/stiker) qisqacha tavsiflaydi."""
+    author = replied.from_user.full_name if replied.from_user else "Noma'lum"
+
+    if replied.text:
+        body = replied.text
+    elif replied.caption:
+        body = replied.caption
+    elif replied.photo:
+        body = "[Rasm]"
+    elif replied.sticker:
+        body = f"[Stiker: {replied.sticker.emoji or '🎨'}]"
+    elif replied.video_note:
+        body = "[Dumaloq video]"
+    elif replied.video:
+        body = "[Video]"
+    elif replied.voice:
+        body = "[Ovozli xabar]"
+    elif replied.audio:
+        body = "[Audio]"
+    elif replied.animation:
+        body = "[GIF]"
+    elif replied.document:
+        body = "[Fayl]"
+    elif replied.location:
+        body = "[Joylashuv]"
+    elif replied.contact:
+        body = "[Kontakt]"
+    else:
+        body = "[Media]"
+
+    body = " ".join(body.split())
+    if len(body) > MAX_REPLY_TEXT_LENGTH:
+        body = body[:MAX_REPLY_TEXT_LENGTH].rstrip() + "..."
+
+    return {"author": author, "text": body}
 
 
 def split_text(text: str, chunk_size: int = 4000) -> list[str]:
@@ -90,6 +154,7 @@ async def cmd_start_chat(message: Message) -> None:
     ]
 
     starter_text = await ai_service.request_ai_response(starter_prompt, chat_id=chat_id)
+    starter_text = ai_service.clean_ai_response(starter_text)
     if not starter_text:
         starter_text = "Ooo, qani suhbatni boshladik! Kimda nima gap, nimalar bo'lyapti? 😎"
 
@@ -129,7 +194,7 @@ async def cmd_stop_chat(message: Message) -> None:
 async def handle_group_message(message: Message) -> None:
     """
     Guruhdagi xabarlarni saralash va qoidalar bo'yicha javob qaytarish:
-    1. Har qanday xabar bazaga saqlanadi (kontekst yo'qolmasligi uchun).
+    1. Har qanday xabar (matn, rasm, stiker) bazaga saqlanadi (kontekst yo'qolmasligi uchun).
     2. Botga atmetka qilinganda -> javob beradi.
     3. Bot xabariga Reply qilinganda -> javob beradi.
     4. Suhbat faol bo'lsa (/suhbat_boshlash) -> 10 ta xabardan 2 tasiga ora-orada qo'shiladi.
@@ -139,13 +204,15 @@ async def handle_group_message(message: Message) -> None:
     if message.from_user and message.from_user.is_bot:
         return
 
-    # Matn, izoh yoki stikerlarni qabul qilish
-    text = message.text or message.caption
+    # Matn, izoh, rasm yoki stikerlarni qabul qilish
+    text = message.text or message.caption or ""
+    has_photo = bool(message.photo)
+
     if not text and message.sticker:
         emoji = message.sticker.emoji or "🎨"
         text = f"[Stiker: {emoji}]"
 
-    if not text:
+    if not text and not has_photo:
         return
 
     sender_name = message.from_user.full_name if message.from_user else "Foydalanuvchi"
@@ -154,11 +221,12 @@ async def handle_group_message(message: Message) -> None:
 
     try:
         # 1. Xabarni doim bazaga yozish (kontekst uchun)
-        user_tokens = ai_service.estimate_tokens(text)
-        await database.add_message(
+        history_content = f"[Rasm] {text}".strip() if has_photo else text
+        user_tokens = ai_service.estimate_tokens(history_content)
+        current_message_id = await database.add_message(
             chat_id=chat_id,
             role="user",
-            content=text,
+            content=history_content,
             user_id=user_id,
             sender_name=sender_name,
             token_count=user_tokens
@@ -171,12 +239,13 @@ async def handle_group_message(message: Message) -> None:
 
         text_lower = text.lower()
 
-        # Atmetka (mention) tekshiruvi:
+        # Atmetka (mention) tekshiruvi (matn va rasm izohlarida):
         is_mentioned = False
         if bot_username and f"@{bot_username}" in text_lower:
             is_mentioned = True
-        elif message.entities:
-            for ent in message.entities:
+        else:
+            entities = list(message.entities or []) + list(message.caption_entities or [])
+            for ent in entities:
                 if ent.type == "mention":
                     m_text = text[ent.offset:ent.offset + ent.length].lower()
                     if m_text == f"@{bot_username}":
@@ -189,6 +258,11 @@ async def handle_group_message(message: Message) -> None:
         if message.reply_to_message and message.reply_to_message.from_user:
             if message.reply_to_message.from_user.id == bot_id:
                 is_reply_to_bot = True
+
+        # Reply qilingan xabar (istalgan xabar bo'lishi mumkin) haqida ma'lumot:
+        reply_context = None
+        if message.reply_to_message:
+            reply_context = describe_reply_message(message.reply_to_message)
 
         # Faol suhbat rejimi tekshiruvi:
         is_active_mode = (await database.get_chat_state(chat_id, "active_mode", "0")) == "1"
@@ -216,13 +290,27 @@ async def handle_group_message(message: Message) -> None:
         except Exception as e:
             logger.debug("ChatAction TYPING xatosi: %s", e)
 
-        # 3. AI uchun kontekstni yig'ish (oxirgi 30 ta xabar + summary)
-        context_messages = await ai_service.build_context_messages(chat_id)
+        # 3. AI uchun kontekstni yig'ish (oldingi xabarlar + hozirgi xabar alohida, reply va rasm konteksti bilan)
+        image_data_url = await photo_to_data_url(message) if has_photo else None
+        context_messages = await ai_service.build_context_messages(
+            chat_id=chat_id,
+            current_user_name=sender_name,
+            current_text=text,
+            current_message_id=current_message_id,
+            reply_context=reply_context,
+            image_data_url=image_data_url,
+        )
 
         # 4. AI dan javob olish
         ai_reply = await ai_service.request_ai_response(context_messages, chat_id=chat_id)
 
-        # 5. Javobni bazaga saqlash
+        # 5. Javobni foydalanuvchiga yuborishdan oldin tozalash (boshidagi ism, ortiqcha emodzilar)
+        ai_reply = ai_service.clean_ai_response(ai_reply, sender_name)
+        if not ai_reply:
+            logger.warning("Tozalashdan so'ng javob bo'sh qoldi (chat: %s).", chat_id)
+            return
+
+        # 6. Javobni bazaga saqlash
         assistant_tokens = ai_service.estimate_tokens(ai_reply)
         await database.add_message(
             chat_id=chat_id,
@@ -231,7 +319,7 @@ async def handle_group_message(message: Message) -> None:
             token_count=assistant_tokens
         )
 
-        # 6. Matnli xabar yuborish
+        # 7. Matnli xabar yuborish
         chunks = split_text(ai_reply, chunk_size=4000)
         for chunk in chunks:
             try:
