@@ -1,8 +1,6 @@
-# 🤖 Legenda Suhbatdosh — Telegram AI Guruhi Boti
+# 🤖 Suhbatdosh — Telegram AI Guruhi Boti
 
-**"Legenda Suhbatdosh"** — o'zbek tilida erkin, tabiiy, samimiy va hazilkash ohangda muloqot qiluvchi aqlli Telegram bot. U faqat guruh va superguruhlarda do'stlaringiz bilan birga suhbatlashish uchun maxsus ishlab chiqilgan.
-
-> *"O'zimni legenda deb o'ylayman, aslida botman. Krinj? Ha, lekin yoqimli 😎"*
+**Suhbatdosh** — o'zbek tilida tabiiy va erkin muloqot qiluvchi aqlli Telegram bot. U guruh va superguruhlarda suhbatlashish uchun maxsus ishlab chiqilgan: bot suhbat kontekstini eslab qoladi hamda matn, stiker va rasmlarga mos, qisqa va tabiiy tarzda munosabat bildiradi.
 
 ---
 
@@ -162,7 +160,7 @@ Botni ishga tushirish:
 python run.py
 ```
 
-Endi botni o'z guruhingizga qo'shing va xabar yozing. Bot darhol o'zbek tilida, "Legenda" personasi bilan muloqotga kirishadi!
+Endi botni o'z guruhingizga qo'shing va xabar yozing. Bot darhol o'zbek tilida muloqot qilishni boshlaydi.
 
 ---
 
